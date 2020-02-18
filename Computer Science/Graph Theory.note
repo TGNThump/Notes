@@ -1,0 +1,595 @@
+<!-- vim: syntax=Markdown -->
+# Networks
+A **network** is a structure formed by a collection of **nodes** connected by **links**
+A network has **n** nodes and **m** edges.
+
+# Paths and Cycles
+A **path** is a sequence of distinct nodes such that any two successive nodes are joined by a link.
+A **cycle** is a finite path such that the first and last elements are the same.
+The **girth** of a network is the length of the smalest cycle in it.
+The **length** of a finite path is the number of links in it.
+Two nodes in a network are **connected** if there exists a path in the network to which they both belong.
+An **acyclic** network is a network without cycles.
+**Trees** are undirected connected acyclic networks.
+
+# Bipartite Networks
+A network is **bipartite** if it's nodes can be subdivided in two groups with no links joining two nodes in the same group.
+
+```java
+public static boolean isBipartite(List<Node> nodes){
+    int[] colors = new int[nodes.size()];
+
+    for (int i=0;i < nodes.size(); i++) {
+        if (colors[i] != 0) continue;
+        Node currentNode = nodes.get(i);
+        colors[i] = 1;
+
+        Stack<Node> nodeStack = new Stack();
+        nodeStack.push(currentNode);
+
+        while (!nodeStack.isEmpty()) {
+            Node u = nodeStack.pop();
+            int uIndex = nodes.indexOf(u);
+
+            for (Node neighbour : u.neighbours()) {
+                int index = nodes.indexOf(neighbour);
+                if (colors[index] == colors[uIndex]) {
+                    return false;
+                } else if (colors[index] == 0) {
+                    nodeStack.push(neighbour);
+                    colors[index] = 3 - colors[uIndex];
+                }
+            }
+        }
+    }
+
+    return true;
+}
+```
+
+# Planar Networks
+A network is **planar** if it can be drawn in the plane without line crossings.
+A **region** in a planar network is a cycle with no chord.
+
+## Kuratowski's Principle
+**K5** and **B33** (utility graph) are not planar.
+Any network that is non-planar must not contain K5, B33 or a network obtained from one of these by replacing a triangle or a square by a longer cycle.
+
+## Euler Formula
+Every connected planar network with **n** nodes, **m** links and **r** regions satisfies **n - m + r = 2**.
+
+## Maximal Planar Networks
+Every connected planar network with **n** nodes, and regions of size at least **g >= 3** must have at most **(g/(g-2))(n-2)** links.
+
+A planar network can be completed into a maximal planar network by adding links up to the limit.
+
+# Degrees
+The **degree** of a node *v* in a network *G* is the number of links attached to that node. This is denoted by *deg(G,v)*
+
+Directed networks have both **in-degree** and **out-degree**.
+
+```c
+// Sum of Degrees
+sum = 2m
+
+// Average Degree
+avg = 2m / n
+
+// Network Density
+density = m / nC2
+normalizedDensity = avg / n-1
+```
+
+# Sparse and Dense Networks
+If the network has **n** nodes, we can identify networks that are **c**-sparce if **c** is a positive number smaller than **(n-1)/4**.
+
+The network is **c**-sparce if it has at most **c*n** links.
+The network is dense if it has at least **1/2 * nC2** links.
+
+# Distances
+The **distance** between two nodes of a network is the **length** of a shortest path betwene the two nodes.
+
+The **diameter** of a network is the longest distance between two nodes of the network.
+
+# Connected Networks
+A network is **connected** if you can walk along the links from any node to any other node in the network.
+
+Connected components can be found via a DFS.
+
+If you can't then the network is split into a number of **connected components**.
+
+## Strongly Connected Networks
+A directed network is called **strongly connected** if there is a directed path from every node to every other node.
+
+The **strongly connected components** of a directed network are it's largest strongly connected sub-networks.
+
+These can be found using Kosaraju's algorithm.
+```java
+Stack<Node> l = new Stack();
+boolean[] visited;
+boolean[] assigned;
+
+Map<Node, Set<Node>> components;
+
+public void kosaraju(){
+    for (Node u : graph){
+        visit(u);
+    }
+
+    for (Node u : l){
+        assign(u, u);
+    }
+    
+    return components;
+}
+
+public void visit(Node u){
+    if (visited[u]) return;
+    
+    visited[u] = true;
+    for(Node v : u.outNeighbours()) visit(v);
+    l.push(u);
+}
+
+public void assign(Node u, Node root){
+    if (assigned[u]) return;
+    
+    components.getOrCreate(root).add(u);
+    assigned[u] = true;
+    for (Node v : u.inNeighbours()) assign(v, root);
+}
+
+
+```
+
+# Crawling
+## BFS
+## DFS
+## Random Walk
+```java
+public Node step(Node current){
+    return current.randomNeighbour();
+}
+```
+The frequency in the walk of a node of degree d approaches d/2m.
+
+### Convergence
+Valid inferences from random walks are based on the assumption that the samples are derived from the equilibrium distribution, which is only true after convergence occurs.
+
+#### Geweke Diagnostic
+Let **X** be a single sequence of samples.
+Xa = the beginning (first 10%) of X.
+Xb = the end (last 50%) of X.
+
+z = (E(Xa) - E(Xb)) / sqrt(Var(Xa) + Var(Xb))
+
+With increasing iterations, Xa and Xb move futher apart, which limits the correleation between them. When the sequence converges, the z values become normally distributed with mean 0 and variance 1.
+
+We can declare convergence when all values fall in the [-1, 1] interval.
+
+### Gelman-Rubin Diagnostic
+If the chain stays long enough in a non-representative region of the graph, we could erroneously declare convergence.
+
+Gelman and Rubin therefore proposed to monitor more than 1 sequence. Their diagnostic compares distributions of individual chains with the distribution of all sequences together. if these two are similar (R < 1.02), we declare convergence.
+
+## Metropolis
+```java
+public Node step(Node current){
+    Node next = current.randomNeighbour();
+    double probability = Math.min(1d, (double)current.degree() / (double)next.degree());
+    
+    if (probability < 1d) {
+        if (Random.getDouble() < probability) return next;
+        return current;
+    } else return next;    
+}
+```
+
+## Rejection Sampling
+Suppose Set A is a subset of Set B. We don't know how to sample randomly from A, but we do in B. We also know that, say, 99% of elements of B are also in A.
+
+In these circumstances, we can obtain a sample from A by sampling from B and rejecting elements of the sample B that are not in A.
+
+|B| must be similar to |B|.
+
+```java
+Set<Object> A;
+Set<Object> B;
+Object sample;
+
+do {
+    Object sample = sample(B);
+} while(!A.contains(sample))
+```
+
+
+
+# Measuring Importance
+## Degree Centrality
+## Local Clustering Coefficient
+
+**N(v)** is the set of neighbours of node v.
+**e(N(v))** is the number of connections  between pairs of elements in **N(v)**.
+
+**lc(v) = e(N(v)) / deg(v)C2**
+
+If lc(v) is very low, we can say that v controls her circle of friends.
+
+### Global Clustering Coefficient
+lc = 1/n sum(lc(v)).
+## Closeness Centrality
+A vertex might be important if it's got a small mean distance to any other vertex in the network.
+
+The **closeness centrality** of a node l(v) = 1/n sum[u in V]{dist(v,u)}
+where dist(v,u) is the shortest path between v and u.
+
+The **centrality** of a node C(v) = 1 / l(v).
+
+## Shortest Path
+```java
+private final Map<Node, Double> distances = new HashMap<Node, Double>();
+private final Map<Node, Node> previous = new HashMap<>();
+
+public Dijkstra(Graph graph, Node initial) {
+    Set<Node> unvisited = new HashSet<>();
+    
+    for (Node node : graph.nodes) {
+        distances.put(node, Double.POSITIVE_INFINITY);
+        unvisited.add(node);
+    }
+
+    distances.put(initial, 0d);
+    
+    while(!unvisited.isEmpty()) {
+        Node u = unvisited.stream().min(Comparator.comparing(node -> distances.get(node))).get();
+        unvisited.remove(u);
+
+        for (Edge edge : u.out) {
+            Node v = edge.destination;
+            double alt = distances.get(u) + edge.getWeight();
+            if (alt < distances.get(v)) {
+                distances.put(v, alt);
+                previous.put(v, u);
+            }
+        }
+    }
+}
+```
+
+## Average Shortest Path Length
+The **average average shhortest path length** is 1/n sum[v in V]{l(v)};
+
+A dynamic programming solution to computing this value is the Floyd-Warshall algorithm.
+```java
+double[][] dist = new double[|V|][|V|];
+
+for (Node u : V){
+    for (Node v : V){
+        if (hasEdge(u,v)) dist[u][v] = weightOfEdge(u,v);
+        else dist[u][v] = INFINITY;
+    }
+}
+
+for (int k = 1; k <= |V|; k++){
+    for (int i = 1; i <= |V|; i++){
+        for (int j = 1; j <= |V|; j++){
+            
+            if (dist[i][j] > dist[i][k] + dist[k][j]){
+                dist[i][j] = dist[i][k] + dist[k][j];
+            }
+            
+        }
+    }
+}
+
+
+```
+
+# Cores
+The **k-core** of a network is the largest sub-network with no node of degree less than k.
+
+Remove nodes that do not have at least k neighbours repeatedly until it's no longer posible.
+
+# Clique
+A **Clique** is a network in which every pair of nodes is joined by a link.
+
+## Maximal Clique Listing
+We can use the **Bron-Kerbosch** algorithm to get the size distribution of the largest cliques.
+```java
+public Set<Node> BK(Set<Node> r, Set<Node> p, Set<Node> x){
+    if (p.isEmpty() && x.isEmpty()){
+        System.out.println(r);
+    } else {
+        for (Node u : p){
+            p.remove(u);
+            
+            BK(
+                r.union(u),
+                p.intersect(u.neighbours()),
+                x.intersect(u.neighbours())
+            );
+            
+            x.add(u);
+        }
+    }
+}
+```
+
+# Homophily & The Assortativity Coefficient
+People have a strong tendancy to associate with others whom they percieve as being similar to themselves.
+
+```java
+public double modularity(){
+    double q = 0;
+    
+    for (int i = 1; i <= n; i++){
+        for (int j = 1; j <= n; j++){
+            if (c(i) == c(j)) continue;
+            q += A[i][j] - (deg(i) * deg(j)) / 2*m;
+        }
+    }
+    
+    return q * 1/(2*m);
+}
+
+public double modularityMax(){
+    double qmax = 0;
+    
+    for (int i = 1; i <= n; i++){
+        for (int j = 1; j <= n; j++){
+            if (c(i) == c(j)) continue;
+            qmax += (deg(i) * deg(j)) / 2*m;
+        }
+    }
+
+    return 1 - 1/(2m) * qmax;
+}
+
+public double assortativityCoefficient(){
+    return modularity() / modularityMax();
+}
+
+public double assortativityCoefficient() {
+    // Group the nodes into degree classes.
+    Map<Long, List<Node>> classes = nodes.stream().collect(Collectors.groupingBy(Node::degree));
+
+    // For each degree class add the internal edges count.
+    int internalEdgesCount = 0;
+    for (Map.Entry<Long, List<Node>> entry : classes.entrySet()) {
+        List<Node> c = entry.getValue();
+        List<Edge> internalEdges = c.stream().flatMap(node -> node.out.stream()).filter(edge -> c.contains(edge.destination) && c.contains(edge.origin)).collect(Collectors.toList());
+        internalEdgesCount += internalEdges.size();
+    }
+    
+    double sumOfSquareOfSumOfDegrees = classes.entrySet().stream().map(entry -> entry.getKey() * entry.getValue().size()).mapToDouble(d->d*d).sum();
+
+    double q = (2*m()) * 2 * internalEdgesCount - sumOfSquareOfSumOfDegrees;
+    double qmax = (2*m())*(2*m())-sumOfSquareOfSumOfDegrees;
+
+    return q/qmax;
+}
+```
+
+The Assortativity Coefficient q/qmax can never be more than one.
+It can be negative if there are fewer links between nodes with the same labels than we would expect from a random network.
+A positive value indicates homophily.
+
+
+# Network Models
+## Random Networks
+### Random Binomial Model
+
+**G(n,1/2)**
+
+A **random binomial model** on n nodes, G(n,1/2) is a network on n nodes in which each line exists with a probability of 1/2.
+
+```java
+int[][] A;
+
+for (int x = 0; i < n; x++)
+    for (int z = x+1; z < n; z++)
+        if (random() <= 1/2) A[x][z] = 1;        
+```
+
+Each node will have a degree ~= (n-1)/2
+The average number of links in this graph will be 1/2 * nC2 = 22.5.
+Almost all the resulting networks are connected.
+
+The diameter of networks generated according to the G(n, 1/2) process is typically 2, for large values of n.
+
+The clustering coefficient values are not distributed in any interesting way.
+Average clustering is 1/2, but little correlation between the degrees of neighbouring vertices.
+
+The sibution is not power law.
+
+### Components
+
+**G(n,c/n)**
+
+To get more than one component, we need to tweak the model: G(n, c/n).
+
+If c > 1 is much smaller than n the reulting network will have a single giant and many dwarves.
+If c < 1 there is no giant and the network tends to be planar (but highly disconnected).
+
+```java
+int[][] A;
+double c = 2.0;
+
+for (int x = 0; x < n; x++)
+    for (int z = x+1; z < n; z++)
+        if (random() <= c/n) A[x][z] = 1;
+```
+
+### Regular Random Graphs
+
+**G(n,d)**
+
+A person is given n buckets. Each bucket contains d balls. The person's task is to full dn/2 boxes with pairs of balls satisfying the following properties:
+
+1. No box contains two balls from the same bucket.
+2. No two boxes contain balls coming from only two buckets.
+
+To solve:
+
+1. choose the first component of the pair.
+2. the second component must be picked at random among all avaliable balls.
+
+All regluar graphs on n vertices with degree equal to d appear with equal probability.
+
+#### Bipartite Variant
+There's objects of two types: balls and squares.
+Boxes must be formed by a ball and a square each.
+
+1. The person has complete freedom as to the way they choose a ball.
+2. However, the square must be picked at random among those avaliable.
+
+#### Directed Graphs
+We take two sets of nd points; points of one set are called in-points and points of the other set are called out-points.
+
+With each node in the set {1...n}, we associate d in-points and d out-points so that each point is associated with exactly one vertex.
+
+A pairing is then a partition of the set of points (both in and out) into nd blocks of size 2 such that each block contains exactly one in-point and exactly one out-point.
+
+Each block of the pairing is called a pair.
+
+#### Generation Heuristic (Arbitrary Vertex Degrees)
+
+**G(n,f)**
+
+1. Setup: given n buckets, assume that bucket i has di > 0 balls. Label these bals i.1..i.di.
+2. Repeat the following steps 1/2 Sum[i=1 to n]{di - 1} times.
+    1. Pick the first ball in the next pair the way you like.
+    2. Pick the second ball in the next pair at random among the avaliable balls.
+
+## Preferential Attachment (Price)
+1. Initially the network is formed by a single isolated note (or any number of connected nodes).
+2. Additional nodes get added one a time. Each node added to the network has c directed links out of it.
+Each link is directed to a randomly chosen previously generated node.
+The chance that a node with in-degree d is the end-point of a directed link is
+
+(d+a)/sum(d+a)
+
+## Vertex Copy Model (Kumar)
+Let G(0,K,c) be a single node v0 with c loops attached to it.
+
+For t>= 1, graph G(t,K,c) is defined from G(t-1,K,c) according to the following procedure:
+1. Choose a prototype vertex w at random. Let u1...uc be the c out-neighbours of w.
+2. For each i=1...c
+    With probability a, choose a vertex u at random and add the edge (vt, u) to G(t-1,K,c)
+    With pronanility 1-a, add edge (vt,ui) to G(t-1,K,c)
+    
+## Prefential Attachment Manierism
+### McCurley Model
+At each step in time a new URL is added to the Web.
+    With probability e, this URL is added as a new tree containing a single URL.
+    With probability v, we create a new directory on an existing site to put the URL into.
+    With probability T, we pick an existing leaf directory and add the new URL to it.
+    Finally, with probability 1-T-e-v, we pick an existing non-leaf directory and add the new URL to it.
+
+We now describe how the links are created. At the time that we create a URL, we create a single inlink to the newly created page.
+    If the URL is created on a new site, the source for the inlink is chosen u.a.r. from all URL's in the graph.
+    If it is created on an existing site, we pick a URL u.a.r. from the set of URL's in the directory where the new URL is attached and the directory immediately above it.
+    
+We now have to say how to create links from each newly created URL:
+    Five types: "Internal", "Up", "Down", "Across", "External".
+    For each type of link t, we have a fixed probability Pt that remains constant. Sum(Pt) = 1
+    The number of links (out-degree) of the new page is chosen at random.
+    We assign a type t to each link with proabability Pt.
+    We pick the target for the link from among the eligible attachment (as in the copy model).
+
+### Cooper and Zito
+A large collection of items [bread, milk] is given.
+Customers fill their baskets with some subset of the items, and we get to know what items people by together, even if we don't know who they are.
+
+Association rules are statements of the form
+    {X1,X2,...,Xn} => Y.
+
+The probability of finding Y for us to accept the rule is called the confidence of the rule.
+This is defined as
+    number of occurrences of X1,...,Xn,y / number of occurrences of X1,...,Xn
+
+We normally would search only for rules that had confidence above a certain threshold a. We mak also ask that the confidence be significantly higher than it would be if items were placed at random into baskets.
+
+We define a model for a database D of supermarket transactions. The transactions are generated sequentially.
+
+Items which have already occured in previous transactions are called old, whereas items occurring for the first time in the current transaction are called new.
+
+At the start there is an initial set of E0 transactions on n0 existing (old) items.
+The model can generate transactions based entirely on the n0 old items, but in general we assume that new items can also be added during transactions, so that at the end of the simulation the total number of items is n > n0
+
+For each of t steps:
+    1. Choose the type of the transaction (OLD or NEW). An OLD type transaction consists entirely of existing items.
+    2. The number of transactions in the group (fixed or probability distributed)
+    3. The size of the individual transactions (fixed or probability distributed)
+    4. The method of choosing the items in the transaction.
+
+## Social Network Model (Watts and Storgatz)
+Starting from a ring lattice with n vertices and k edges per vertex, we rewire each edge at random with probability p.
+
+# Voronoi Diagrams
+A cluster is defined as a block of connected black squares.
+
+## Delaunay Triangulations
+1. Connect the points on the convex hull in a cycle.
+2. Iteratively remove any cycle of length at least four inside the convex hull by adding arbritrary lines connecting pairs of vertices (but leave the convex hull untouched and do not destroy planarity).
+3. A pair of triangles sharing an edge is bad if the sum of the angles is larger than 180 degrees. Remove all bad pairs of triangles by swapping the diagonal.
+4. Draw all orthoganal segments splitting the lines in half.
+
+## Approximate
+1. Given the n sites S1...Sn, in a rectangular region R, repetedly sample points P in R,
+    compute the distance dist(P, Si) and assign P to the cell of minimum distance.
+
+# Information Retrieval
+Boolean Search Engine: The user is allowed to search for documents containing a number of textual expressions combined through standard logical operators.
+
+Vector Space Model: Encodes texual data into numeric vectors and then employs matrix analysis to discover key features and connections.
+
+Probabilistic Models: Attempt to estimate the probability that the user will find a particular document relevant.
+
+Meta-search engines are based on the principle that two or three different engines maybe e better than one.
+
+## Web Search Process
+1. The web is crawled to find web pages.
+2. The text of those pages is processed to create an annotated index, and a centrality score is calculated.
+3. The search engine retrieves a broad set of matching pages, which are then narrowed down and ordered. This is done by various measures such as frequency and position of words.
+5. Show the highest ranked to the user.
+
+### Crawling - BFS
+### Indexing
+A process extracts the most "important" textual information, which is stored in an inverted files.
+### Ranking
+Typically the ranking is obtained by sorting the pages by a combination of content score and popularity score.
+
+## HITS - Hypertext Induced Topic Search
+1. A page is a hub if it contains my outlinks.
+2. A page is an authority if it is pointed to by many pages.
+
+Each page i has an authority score xi and a hub score yi.
+Let E be the collection of directed links in the web graph and denote by (i,j) the directed link from node i to j.
+
+Given some initial assignments xi(0) and yi(0), HITS successively refines these scores by computing
+
+xi(k) = sum[j:(j,i) in E]{yj(k-1)}
+yi(k) = sum[j:(i,j) in E]{xj(k)}
+
+Normalization takes place at the end of each step.
+
+## Google's PageRank
+### Initial Formulation
+Let's assume that the web is a directed graph consisting of pages P1,P2,...
+
+Initial values are 1/n
+r(P) = r(in(P)[0])/outDeg(in(P)[0]) + ... + r(in(P)[n])/outDeg(in(P)[n])
+
+This has a number of issues...
+1. Why start from 1/n? Can we start from an arbritary value set?
+2. Why do we stop?
+3. Do we ever reach a stable state?
+4. If it converges, does the solution make sense?
+5. Cycles break things.
+
+### Final Forumulation
+
+r(P) = a(r(Pj1)/deg+(Pj1) + r(Pj2)/deg+(Pj2) + ...) + (1-a)/n
+
+a ~= 80%
