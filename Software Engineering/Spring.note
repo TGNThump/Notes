@@ -1,5 +1,5 @@
 <!-- vim: syntax=Markdown -->
-# Inversion of Control and Dependency Injection
+# Inversion of Control, Dependency Injection and Beans
 **Inversion of Control** (IoC) is a principle by which the control flow of an application is transferred to a **container** or framework, which can then delegate to implementation code as is required.
 
 IoC is sometimes refered too as the **Hollywood Principle**;
@@ -10,7 +10,7 @@ IoC is sometimes refered too as the **Hollywood Principle**;
 
 IoC is used to increase the modularity, extensibility and testability of an application by decoupling the execution of a task from it's implementation.
 
-**Dependency Injection** (DI) is a design pattern that implements the IoC principle by handing off the task of **object instantiation** and **dependency resolution** to an **IoC container**. Objects managed by the container, often known as **beans**, can define their dependencies through constructor arguments, setters, factory arguments or fields. 
+**Dependency Injection** (DI) is a design pattern that implements the IoC principle by handing off the task of **object instantiation** and **dependency resolution** to an **IoC container**. Objects managed by the container, can define their dependencies through constructor arguments, setters, factory arguments or fields. 
  
  Advantages of DI include;
  - Reduced coupling between different parts of an application.
@@ -21,6 +21,9 @@ IoC is used to increase the modularity, extensibility and testability of an appl
  - Increased maintainability.
  - Standardizes parts of application development.
  - Reduces boilerplate code.
+ 
+The Spring IoC container is defined as the `BeanFactory` interface.
+The `ApplicationContext` is a sub-interface of the `BeanFactory` that also provides extra functionality such as AOP integration support, message resource handling and event publication.
 
 <!---
 # Container, Dependency and IoC
